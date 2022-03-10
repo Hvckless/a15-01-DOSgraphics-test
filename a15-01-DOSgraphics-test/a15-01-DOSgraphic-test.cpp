@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <windows.h>
 
+#pragma warning(disable:4996)
+
 //----- console color -----
 #define BLACK	0x0
 #define BLUE	0x1
@@ -21,6 +23,7 @@ int gotoxySprintColor(int x, int y, char* chText, WORD wColor);
 
 int main(void)
 {
+	//code changed
 	HWND hWind;
 	HDC hDC;
 	HANDLE hConsole;
