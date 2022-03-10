@@ -23,7 +23,7 @@ int gotoxySprintColor(int x, int y, char* chText, WORD wColor);
 
 int main(void)
 {
-	//code changed
+	//code changed new change
 	HWND hWind;
 	HDC hDC;
 	HANDLE hConsole;
