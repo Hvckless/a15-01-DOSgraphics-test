@@ -15,22 +15,24 @@
 #define WHITE	0x7
 //----- console color -----
 
-int base_display(HWND hWind, HDC hDC);
-int ConsoleColorTest(HANDLE hConsole);
-int gotoxy(int x, int y);
-int gotoxySprint(int x, int y, char* chText);
-int gotoxySprintColor(int x, int y, char* chText, WORD wColor);
+int uart_oneByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char parity, char data);
+int uart_multiByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char parity, int data_cnt, char* data);
+
+int windth_x = 80;
+int windth_y = 80;
+int windth_gap = 40;
 
 int main(void)
 {
-	//no change
 	HWND hWind;
 	HDC hDC;
 	HANDLE hConsole;
 	char chText[1024];
 
-	int x, y;
-	char chComm;
+	int i;
+	char chComm[16];
+	char parity_In;
+	int data_cnt_In;
 
 	hWind = GetForegroundWindow();
 	hDC = GetDC(hWind);
@@ -38,45 +40,48 @@ int main(void)
 
 	do {
 		printf("---command:");
-
-		scanf(" %c", &chComm);
-		switch (chComm) {
-		case 'a':
-			base_display(hWind, hDC);
+		parity_In = chComm[1];
+		chText[0] = chComm[2];
+		uart_oneByte_display(hWind, hDC, 100, 100, parity_In, chText[0]);
+		printf("uart data=%c[0x%02x]\n", chText[0], chText[0]);
+		//scanf(" %s", chComm);
+		/*
+		switch (chComm[0]) {
+		case 'a': // 콘솔 색상 변경(배경:밝은힌색, 전경:어두운검은색)
+			system("color f0");
 			break;
-		case 'b': // 콘솔 색상 테스트(배경,전경)
-			ConsoleColorTest(hConsole);
+		case 'b': // 콘솔창 크기 변경
+			system("mode con:cols=160 lines=50");
 			break;
 		case 'c': // 콘솔 지우기
 			system("cls");
 			break;
-		case 'd': // 콘솔 색상 변경(배경:밝은힌색, 전경:어두운검은색)
-			system("color f0");
+		case 'd': // uart : one byte tx
+			parity_In = chComm[1];
+			chText[0] = chComm[2];
+			uart_oneByte_display(hWind, hDC, 100, 100, parity_In, chText[0]);
+			printf("uart data=%c[0x%02x]\n", chText[0], chText[0]);
 			break;
-		case 'e': // 콘솔창 크기 변경
-			system("mode con:cols=120 lines=40");
-			break;
-		case 'f': // x,y cursor move and print
-			x = 15; y = 12;
-			gotoxy(x, y);
-			printf("---cursor move test---");
-			break;
-		case 'g': // x,y cursor move and print
-			x = 15; y = 12;
-			sprintf(chText, "---cursor move and string---");
-			gotoxySprint(x, y, chText);
-			break;
-		case 'h': // x,y cursor move and print, color
-			x = 15; y = 12;
-			sprintf(chText, "---cursor move and string, color---");
-			//gotoxySprintColor(x, y, chText, ((BROWN << 4) + RED));
-			//gotoxySprintColor(x, y, chText, ((CYAN << 4) + RED));
-			gotoxySprintColor(x, y, chText, ((WHITE << 4) + RED));
+		case 'e': // uart : multi byte tx
+			parity_In = chComm[1];
+			data_cnt_In = (int)chComm[2] - 48;
+			for (i = 0; i < data_cnt_In; i++) {
+				chText[i] = chComm[3 + i];
+			}
+			uart_multiByte_display(hWind, hDC, 100, 100, parity_In, data_cnt_In, chText);
+			printf("uart data[%d]=", data_cnt_In);
+			for (i = 0; i < data_cnt_In; i++) {
+				printf("%c[0x%02x] ", chText[i], chText[i]);
+			}
+			printf("\n");
 			break;
 		default:
 			break;
 		}
-	} while ('x' != chComm);
+		*/
+
+
+	} while ('x' != chComm[0]);
 
 	ReleaseDC(hWind, hDC);
 	CloseHandle(hConsole);
@@ -84,87 +89,117 @@ int main(void)
 	return(0);
 }
 
-int base_display(HWND hWind, HDC hDC)
+int uart_oneByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char parity, char data)
 {
-	int x, y;
+	int base_x, base_y;
 	int i;
+	int m, d;
+	char bit_cnt;
+	char chComp;
 
-	x = 150; y = 170;
-	MoveToEx(hDC, x, y, NULL);
-	x = 150; y = 250;
-	LineTo(hDC, x, y);
+	base_x = origin_x; base_y = origin_y;
+	// idle(black)
+	m = 0;
+	for (i = 0; i < windth_x; i++) {
+		SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(25, 25, 25));
+	}
+	// start(red)
+	m = 1;
+	for (i = 0; i < windth_x; i++) {
+		SetPixel(hDC, (base_x + (m * windth_x) + i), (base_y + windth_y), RGB(235, 0, 0));
+	}
+	// data
+	chComp = 0x01;
+	bit_cnt = 0;
+	d = 0;
+	m = 2;
+	while (1) {
+		if ((data & chComp) == chComp) {	// bit = 1
+			for (i = 0; i < windth_x; i++) {
+				SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(0, 235, 0));
+			}
+			bit_cnt += 1;
+		}
+		else {							// bit = 0
+			for (i = 0; i < windth_x; i++) {
+				SetPixel(hDC, (base_x + (m * windth_x) + i), (base_y + windth_y), RGB(0, 235, 0));
+			}
+		}
+		chComp <<= 1;
+		d += 1;
+		if (d == 8) {
+			break;
+		}
+		m += 1;
+	}
+	// parity
 
-	Rectangle(hDC, 100, 100, 200, 150);
+	//-----------------여기에 코드를 추가하세요.---------------------------------------------------
 
-	Ellipse(hDC, 200, 200, 300, 300);
-
-	x = 300; y = 70;
-	for (i = 30; i < 250; i++) {
-		SetPixel(hDC, (x + i), (y + i), RGB(255, 0, 0));
+	// stop
+	m += 1;
+	for (i = 0; i < windth_x; i++) {
+		SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(235, 0, 0));
 	}
 
 	return(0);
 }
 
-int ConsoleColorTest(HANDLE hConsole)
+int uart_multiByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char parity, int data_cnt, char* data)
 {
-	int i, m;
+	int base_x, base_y;
+	int i;
+	int m, d;
+	char bit_cnt;
+	char chComp;
+	int c;
 
-	for (i = 0; i < 16; i++) { // 배경색
-		for (m = 0; m < 8; m++) { // 어두운 전경색
-			SetConsoleTextAttribute(hConsole, ((i << 4) + m));
-			printf("(test:%02x)", ((i << 4) + m));
+	for (int c = 0; c < data_cnt; c++) {
+		base_x = origin_x; base_y = origin_y + (c * windth_y) + (c * windth_gap);
+		// idle(black)
+		m = 0;
+		for (i = 0; i < windth_x; i++) {
+			SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(25, 25, 25));
 		}
-		printf("\n");
-		for (m = 8; m < 16; m++) { // 밝은 전경색
-			SetConsoleTextAttribute(hConsole, ((i << 4) + m));
-			printf("(test:%02x)", ((i << 4) + m));
+		// start(red)
+		m = 1;
+		for (i = 0; i < windth_x; i++) {
+			SetPixel(hDC, (base_x + (m * windth_x) + i), (base_y + windth_y), RGB(235, 0, 0));
 		}
-		printf("\n");
+		// data
+		chComp = 0x01;
+		bit_cnt = 0;
+		d = 0;
+		m = 2;
+		while (1) {
+			if ((data[c] & chComp) == chComp) {	// bit = 1
+				for (i = 0; i < windth_x; i++) {
+					SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(0, 235, 0));
+				}
+				bit_cnt += 1;
+			}
+			else {							// bit = 0
+				for (i = 0; i < windth_x; i++) {
+					SetPixel(hDC, (base_x + (m * windth_x) + i), (base_y + windth_y), RGB(0, 235, 0));
+				}
+			}
+			chComp <<= 1;
+			d += 1;
+			if (d == 8) {
+				break;
+			}
+			m += 1;
+		}
+		// parity
+
+		//-----------------여기에 코드를 추가하세요.---------------------------------------------------
+
+		// stop
+		m += 1;
+		for (i = 0; i < windth_x; i++) {
+			SetPixel(hDC, (base_x + (m * windth_x) + i), base_y, RGB(235, 0, 0));
+		}
 	}
-
-	return(0);
-}
-
-int gotoxy(int x, int y)
-{
-
-	COORD Pos = { x, y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
-
-	return(0);
-}
-
-int gotoxySprint(int x, int y, char* chText)
-{
-	CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
-	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &bufferInfo);
-
-	COORD curPos = { x, y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), curPos);
-	printf("%s", chText);
-
-	COORD prePos = { bufferInfo.dwCursorPosition.X, bufferInfo.dwCursorPosition.Y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), prePos);
-
-	return(0);
-}
-
-int gotoxySprintColor(int x, int y, char* chText, WORD wColor)
-{
-	CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
-	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &bufferInfo);
-
-	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), wColor);
-
-	COORD curPos = { x, y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), curPos);
-	printf("%s", chText);
-
-	COORD prePos = { bufferInfo.dwCursorPosition.X, bufferInfo.dwCursorPosition.Y };
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), prePos);
-
-	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), bufferInfo.wAttributes);
 
 	return(0);
 }
