@@ -22,6 +22,18 @@ int windth_x = 80;
 int windth_y = 80;
 int windth_gap = 40;
 
+
+int helloworld(int hellogod){
+
+	int kinggod = 10;
+	
+	printf("HELLO WORLD");
+
+	return hellogod;
+
+}
+
+
 int main(void)
 {
 	HWND hWind;
@@ -47,13 +59,13 @@ int main(void)
 		//scanf(" %s", chComm);
 		/*
 		switch (chComm[0]) {
-		case 'a': // ÄÜ¼Ö »ö»ó º¯°æ(¹è°æ:¹àÀºÈù»ö, Àü°æ:¾îµÎ¿î°ËÀº»ö)
+		case 'a': // ì½˜ì†” ìƒ‰ìƒ ë³€ê²½(ë°°ê²½:ë°ì€íŒìƒ‰, ì „ê²½:ì–´ë‘ìš´ê²€ì€ìƒ‰)
 			system("color f0");
 			break;
-		case 'b': // ÄÜ¼ÖÃ¢ Å©±â º¯°æ
+		case 'b': // ì½˜ì†”ì°½ í¬ê¸° ë³€ê²½
 			system("mode con:cols=160 lines=50");
 			break;
-		case 'c': // ÄÜ¼Ö Áö¿ì±â
+		case 'c': // ì½˜ì†” ì§€ìš°ê¸°
 			system("cls");
 			break;
 		case 'd': // uart : one byte tx
@@ -134,7 +146,7 @@ int uart_oneByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char p
 	}
 	// parity
 
-	//-----------------¿©±â¿¡ ÄÚµå¸¦ Ãß°¡ÇÏ¼¼¿ä.---------------------------------------------------
+	//-----------------ì—¬ê¸°ì— ì½”ë“œë¥¼ ì¶”ê°€í•˜ì„¸ìš”.---------------------------------------------------
 
 	// stop
 	m += 1;
@@ -192,7 +204,7 @@ int uart_multiByte_display(HWND hWind, HDC hDC, int origin_x, int origin_y, char
 		}
 		// parity
 
-		//-----------------¿©±â¿¡ ÄÚµå¸¦ Ãß°¡ÇÏ¼¼¿ä.---------------------------------------------------
+		//-----------------ì—¬ê¸°ì— ì½”ë“œë¥¼ ì¶”ê°€í•˜ì„¸ìš”.---------------------------------------------------
 
 		// stop
 		m += 1;
